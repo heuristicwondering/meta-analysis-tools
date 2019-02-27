@@ -196,6 +196,9 @@ class TitleExtractor:
         elif search_engine == "p":
             self.browser.get("https://www.ncbi.nlm.nih.gov/pubmed/")
             self.extractor = PubMedExtractor()
+        elif search_engine == "q":
+            self.browser.get("https://search.proquest.com/dissertations/index")
+            self.extractor = ProQuestExtractor()
 
     def _extract_data_from_page(self):
         articles = self.browser.find_elements_by_xpath(self.extractor.article_xpath)
