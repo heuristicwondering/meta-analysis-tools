@@ -242,4 +242,3 @@ class TitleExtractor:
                     self.browser.quit()
 
         return self.extractor.output
-
