@@ -3,6 +3,60 @@ from savefullpage import save_fullpage_screenshot
 import os, time
 
 
+class PsychInfoExtractor:
+    def __init__(self):
+        # Needed for screenshots
+        image_fldr = './PsychInfo-screenshots-taken-on-' + time.strftime("%Y%m%d-%H%M%S")
+        if not os.path.exists(image_fldr):
+            os.makedirs(image_fldr)
+        self.screenshot_folder = image_fldr
+
+        # All elements that contain article information
+        self.article_xpath = '//ul[@class=\'resultItems\']/li[@class=\'resultItem ltr\']'
+
+        # To find information about article
+        self.article_title_xpath = './/a[@id=\'citationDocTitleLink\']/div[@class=\'truncatedResultsTitle\']'
+        self.article_author_xpath = './/span[@class=\'titleAuthorETC\']'
+        self.article_url_xpath = './/a[@id=\'citationDocTitleLink\']'
+
+        # The next button on the page
+        self.nxtbtn_xpath = '//nav/ul[@class=\'pagination\']/li/a'
+
+        # Everything the instance has gathered
+        self.output = dict(titles=[], authors=[], urls=[])
+
+    def _append_results_to_output(self, thispage_articles):
+        self.output['titles'] += thispage_articles['titles']
+        self.output['authors'] += thispage_articles['authors']
+        self.output['urls'] += thispage_articles['urls']
+
+    def button_click(self, browser):
+        old_page = browser.current_url
+        next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)
+        next_btn.click()
+        time.sleep(2)
+
+        current_page = browser.current_url
+
+        # If my pagination id hasn't changed, then the button didn't do anything
+        if old_page == current_page:
+            raise Exception('Attempted button click did not advance page!')
+
+    def get_article_data(self, articles):
+        results = dict(titles=[], authors=[], urls=[])
+
+        for entry in articles:
+            title_div = entry.find_element_by_xpath(self.article_title_xpath)
+            results['titles'].append(title_div.text)
+
+            author_div = entry.find_element_by_xpath(self.article_author_xpath)
+            results['authors'].append(author_div.text)
+
+            url_div = entry.find_element_by_xpath(self.article_url_xpath)
+            results['urls'].append(url_div.get_attribute('href'))
+
+        self._append_results_to_output(results)
+
 class ProQuestExtractor:
     def __init__(self):
         # Needed for screenshots
@@ -199,6 +253,9 @@ class TitleExtractor:
         elif search_engine == "q":
             self.browser.get("https://search.proquest.com/dissertations/index")
             self.extractor = ProQuestExtractor()
+        elif search_engine == "s":
+            self.browser.get("https://search.proquest.com/psycinfo/advanced?accountid=14553")
+            self.extractor = PsychInfoExtractor()
 
     def _extract_data_from_page(self):
         articles = self.browser.find_elements_by_xpath(self.extractor.article_xpath)

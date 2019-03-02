@@ -14,8 +14,10 @@ print("Hello! This is a very crude version of a webscraper built to help \n"
 # Gathering info about what the user wants to search.
 print("To get started, please tell me what search engine you\'re scraping info from today.")
 while True:
-    search_engine = input("[g] Google Scholar, [p] Pubmed, [q] Proquest: ").lower()
-    if search_engine in ["g", "p", "q"]:
+    search_engine = input("[g] Google Scholar, [p] Pubmed, [q] Proquest Dissertations, \n"
+                          "[s] PsychInfo: ").lower()
+
+    if search_engine in ["g", "p", "q", "s"]:
         break
     else:
         print("\nRight now I\'m only built to scrape these engines.\n"
