@@ -3,6 +3,125 @@ from savefullpage import save_fullpage_screenshot
 import os, time
 
 
+class NIHreporterExtractor:
+    def __init__(self):
+        # NIH can search several types of info, this specifies which
+        self.table_name = self._set_table_name()
+
+        # Needed for screenshots
+        image_fldr = './NIHrePORTER-' + self.table_name + '-screenshots-taken-on-' + time.strftime("%Y%m%d-%H%M%S")
+        if not os.path.exists(image_fldr):
+            os.makedirs(image_fldr)
+        self.screenshot_folder = image_fldr
+
+        # All elements that contain article information
+        self.article_xpath = '//div[@class=\'proj_tab_content\']/table/tbody/tr'
+
+        # To find information about article
+        if self.table_name == "Projects":
+            self.article_title_xpath = './td[4]'
+            self.article_author_xpath = './td[5]'
+            self.article_url_xpath = './td[4]/a'
+            self.article_projectID_xpath = './td[2]/table[@class=\'proj_search_pnum\']/tbody/tr/td[3]/a'
+        elif self.table_name == "Publications":
+            self.article_title_xpath = './td[2]'
+            self.article_author_xpath = './td[4]'
+            self.article_url_xpath = './td[3]/a[1]'
+            self.article_projectID_xpath = './td[1]'
+        elif self.table_name == "Patents":
+            self.article_title_xpath = './td[3]'
+            self.article_author_xpath = './td[4]'
+            self.article_url_xpath = './td[3]/a'
+            self.article_projectID_xpath = './td[1]'
+        elif self.table_name == "Clinical-Studies":
+            self.article_title_xpath = './td[3]'
+            self.article_author_xpath = ''
+            self.article_url_xpath = './td[3]/a'
+            self.article_projectID_xpath = './td[1]'
+
+        # The next button on the page
+        self.nxtbtn_xpath = '//div[@class=\'page_counter\']/div[@class=\'pager\']/a[@class=\'single_arrow\']'
+
+        # The current page of results
+        if self.table_name == "Projects":
+            self.pagination = '//div[@class=\'page_counter\']/div[@class=\'pager\']/input[@id=\'sr_pagetogo\']'
+        else:
+            self.pagination = '//div[@class=\'page_counter\']/div[@class=\'pager\']'
+
+        # Everything the instance has gathered
+        self.output = dict(titles=[], authors=[], urls=[], projectID=[])
+
+    def _set_table_name(self):
+        table_names = dict(p='Projects', a='Publications', i='Patents', c='Clinical-Studies')
+
+        print('\nNIHrePORTER can search several types of information.\n'
+              'Right now I can only scrape one of these types at a time.\n')
+
+        while True:
+            table_type = input('Which data do you want to scrape?\n'
+                               '[p] Projects, [a] Publications, [i] Patents, [c] Clinical Studies: ').lower()
+            if table_type in ["p", "a", "i", "c"]:
+                break
+            else:
+                print('\nThese are the only things I\'m built to grab. Please pick one.\n')
+
+        return table_names[table_type]
+
+    def _append_results_to_output(self, thispage_articles):
+        self.output['titles'] += thispage_articles['titles']
+        self.output['authors'] += thispage_articles['authors']
+        self.output['urls'] += thispage_articles['urls']
+        self.output['projectID'] += thispage_articles['projectID']
+
+    def button_click(self, browser):
+        old_page = browser.find_element_by_xpath(self.pagination)
+
+        if self.table_name == "Projects":
+            old_page = old_page.get_attribute('value')
+        else:
+            old_page = old_page.text
+
+        next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)  # will fail on last page
+        next_btn.click()
+        time.sleep(2)
+
+        current_page = browser.find_element_by_xpath(self.pagination)
+
+        if self.table_name == "Projects":
+            current_page = current_page.get_attribute('value')
+        else:
+            current_page = current_page.text
+
+        # If my pagination hasn't changed, then the button didn't do anything
+        if old_page == current_page:
+            raise Exception('Attempted button click did not advance page!')
+
+    def get_article_data(self, articles):
+        results = dict(titles=[], authors=[], urls=[], projectID=[])
+
+        for entry in articles:
+            try:
+                # Will fail if this row is the table headers
+                title_div = entry.find_element_by_xpath(self.article_title_xpath)
+                results['titles'].append(title_div.text)
+            except:
+                continue
+
+            if self.table_name != 'Clinical-Studies':
+                author_div = entry.find_element_by_xpath(self.article_author_xpath)
+                results['authors'].append(author_div.text)
+            else:
+                results['authors'].append('NA')
+
+            url_div = entry.find_element_by_xpath(self.article_url_xpath)
+            results['urls'].append(url_div.get_attribute('href'))
+
+            projectID_div = entry.find_element_by_xpath(self.article_projectID_xpath)
+            results['projectID'].append(projectID_div.text)
+
+        self._append_results_to_output(results)
+
+
 class PsychInfoExtractor:
     def __init__(self):
         # Needed for screenshots
@@ -16,6 +135,7 @@ class PsychInfoExtractor:
 
         # To find information about article
         self.article_title_xpath = './/a[@id=\'citationDocTitleLink\']/div[@class=\'truncatedResultsTitle\']'
+        self.article_title_altxpath = './/a[@id=\'citationDocTitleLink\']/div[@class=\'truncatedResultsTitle truncatedEffect\']'
         self.article_author_xpath = './/span[@class=\'titleAuthorETC\']'
         self.article_url_xpath = './/a[@id=\'citationDocTitleLink\']'
 
@@ -32,13 +152,16 @@ class PsychInfoExtractor:
 
     def button_click(self, browser):
         old_page = browser.current_url
-        next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)
-        next_btn.click()
+        # for some reason text() in xpath is not working so doing it this way.
+        next_btn = browser.find_elements_by_xpath(self.nxtbtn_xpath)
+        next_btn = next_btn[-1]
+        if next_btn.text == 'Next page':
+            next_btn.click()
         time.sleep(2)
 
         current_page = browser.current_url
 
-        # If my pagination id hasn't changed, then the button didn't do anything
+        # If my url hasn't changed, then the button didn't do anything
         if old_page == current_page:
             raise Exception('Attempted button click did not advance page!')
 
@@ -46,8 +169,12 @@ class PsychInfoExtractor:
         results = dict(titles=[], authors=[], urls=[])
 
         for entry in articles:
-            title_div = entry.find_element_by_xpath(self.article_title_xpath)
-            results['titles'].append(title_div.text)
+            try:
+                title_div = entry.find_element_by_xpath(self.article_title_xpath)
+                results['titles'].append(title_div.text)
+            except:  # handling long titles
+                title_div = entry.find_element_by_xpath(self.article_title_altxpath)
+                results['titles'].append(title_div.text)
 
             author_div = entry.find_element_by_xpath(self.article_author_xpath)
             results['authors'].append(author_div.text)
@@ -56,6 +183,7 @@ class PsychInfoExtractor:
             results['urls'].append(url_div.get_attribute('href'))
 
         self._append_results_to_output(results)
+
 
 class ProQuestExtractor:
     def __init__(self):
@@ -70,6 +198,7 @@ class ProQuestExtractor:
 
         # To find information about article
         self.article_title_xpath = './/a[@id=\'citationDocTitleLink\']/div[@class=\'truncatedResultsTitle\']'
+        self.article_title_altxpath = './/a[@id=\'citationDocTitleLink\']/div[@class=\'truncatedResultsTitle truncatedEffect\']'
         self.article_author_xpath = './/span[@class=\'titleAuthorETC\']'
         self.article_url_xpath = './/a[@id=\'citationDocTitleLink\']'
 
@@ -86,13 +215,16 @@ class ProQuestExtractor:
 
     def button_click(self, browser):
         old_page = browser.current_url
-        next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)
-        next_btn.click()
+        # for some reason text() in xpath is not working so doing it this way.
+        next_btn = browser.find_elements_by_xpath(self.nxtbtn_xpath)
+        next_btn = next_btn[-1]
+        if next_btn.text == 'Next page':
+            next_btn.click()
         time.sleep(2)
 
         current_page = browser.current_url
 
-        # If my pagination id hasn't changed, then the button didn't do anything
+        # If my url hasn't changed, then the button didn't do anything
         if old_page == current_page:
             raise Exception('Attempted button click did not advance page!')
 
@@ -100,8 +232,12 @@ class ProQuestExtractor:
         results = dict(titles=[], authors=[], urls=[])
 
         for entry in articles:
-            title_div = entry.find_element_by_xpath(self.article_title_xpath)
-            results['titles'].append(title_div.text)
+            try:
+                title_div = entry.find_element_by_xpath(self.article_title_xpath)
+                results['titles'].append(title_div.text)
+            except:  # handling long titles
+                title_div = entry.find_element_by_xpath(self.article_title_altxpath)
+                results['titles'].append(title_div.text)
 
             author_div = entry.find_element_by_xpath(self.article_author_xpath)
             results['authors'].append(author_div.text)
@@ -110,6 +246,7 @@ class ProQuestExtractor:
             results['urls'].append(url_div.get_attribute('href'))
 
         self._append_results_to_output(results)
+
 
 class PubMedExtractor:
     def __init__(self):
@@ -171,6 +308,7 @@ class PubMedExtractor:
             results['urls'].append(url_div.get_attribute('href'))
 
         self._append_results_to_output(results)
+
 
 class GoogleExtractor:
     def __init__(self):
@@ -256,6 +394,9 @@ class TitleExtractor:
         elif search_engine == "s":
             self.browser.get("https://search.proquest.com/psycinfo/advanced?accountid=14553")
             self.extractor = PsychInfoExtractor()
+        elif search_engine == "n":
+            self.browser.get("https://projectreporter.nih.gov/reporter.cfm")
+            self.extractor = NIHreporterExtractor()
 
     def _extract_data_from_page(self):
         articles = self.browser.find_elements_by_xpath(self.extractor.article_xpath)
