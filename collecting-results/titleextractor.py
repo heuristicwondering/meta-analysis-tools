@@ -3,6 +3,91 @@ from savefullpage import save_fullpage_screenshot
 import os, time
 
 
+class ClinicalTrialsExtractor:
+    def __init__(self):
+        # Needed for screenshots
+        image_fldr = './ClinicalTrialsGov-screenshots-taken-on-' + time.strftime("%Y%m%d-%H%M%S")
+        if not os.path.exists(image_fldr):
+            os.makedirs(image_fldr)
+        self.screenshot_folder = image_fldr
+
+        # All elements that contain article information
+        self.article_xpath = '//table[@id=\'theDataTable\']/tbody/tr'
+
+        # To find information about article
+        self.article_title_xpath = './/td[4]'
+        self.article_status_xpath = './/td[3]'
+        self.article_intervention_xpath = './/td[6]/ul/li'
+        self.article_condition_xpath = './/td[5]/ul/li'
+        self.article_location_xpath = './/td[7]/ul/li'
+        self.article_url_xpath = './/td[4]/a'
+
+        # The next button on the page
+        self.nxtbtn_xpath = '//div[@id=\'theDataTable_paginate\']/a[@id=\'theDataTable_next\']'
+
+        # The current page of results
+        self.pagination = '//div[@id=\'theDataTable_wrapper\']/div[@id=\'theDataTable_info\']'
+
+        # Everything the instance has gathered
+        self.output = dict(titles=[], status=[], conditions=[], interventions=[], locations=[],  urls=[])
+
+    def _append_results_to_output(self, thispage_articles):
+        self.output['titles'] += thispage_articles['titles']
+        self.output['status'] += thispage_articles['status']
+        self.output['conditions'] += thispage_articles['conditions']
+        self.output['interventions'] += thispage_articles['interventions']
+        self.output['locations'] += thispage_articles['locations']
+        self.output['urls'] += thispage_articles['urls']
+
+    def button_click(self, browser):
+        old_page = browser.find_element_by_xpath(self.pagination)
+        old_page = old_page.text
+
+        next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)
+        next_btn.click()
+        time.sleep(2)
+
+        current_page = browser.find_element_by_xpath(self.pagination)
+        current_page = current_page.text
+
+        # If my url hasn't changed, then the button didn't do anything
+        if old_page == current_page:
+            raise Exception('Attempted button click did not advance page!')
+
+    def get_article_data(self, articles):
+        results = dict(titles=[], status=[], conditions=[], interventions=[], locations=[],  urls=[])
+
+        for entry in articles:
+            title_div = entry.find_element_by_xpath(self.article_title_xpath)
+            results['titles'].append(title_div.text)
+
+            status_div = entry.find_element_by_xpath(self.article_status_xpath)
+            results['status'].append(status_div.text)
+
+            condition_div = entry.find_elements_by_xpath(self.article_condition_xpath)
+            condition = ''
+            for div in condition_div:
+                condition += div.text + '\n'
+            results['conditions'].append(condition)
+
+            intervention_div = entry.find_elements_by_xpath(self.article_intervention_xpath)
+            intervention = ''
+            for div in intervention_div:
+                intervention += div.text + '\n'
+            results['interventions'].append(intervention)
+
+            location_div = entry.find_elements_by_xpath(self.article_location_xpath)
+            location = ''
+            for div in location_div:
+                location += div.text + '\n'
+            results['locations'].append(location)
+
+            url_div = entry.find_element_by_xpath(self.article_url_xpath)
+            results['urls'].append(url_div.get_attribute('href'))
+
+        self._append_results_to_output(results)
+
+
 class NIHreporterExtractor:
     def __init__(self):
         # NIH can search several types of info, this specifies which
@@ -397,6 +482,9 @@ class TitleExtractor:
         elif search_engine == "n":
             self.browser.get("https://projectreporter.nih.gov/reporter.cfm")
             self.extractor = NIHreporterExtractor()
+        elif search_engine == "c":
+            self.browser.get("https://clinicaltrials.gov/ct2/search/advanced?cond=&term=&cntry=&state=&city=&dist=")
+            self.extractor = ClinicalTrialsExtractor()
 
     def _extract_data_from_page(self):
         articles = self.browser.find_elements_by_xpath(self.extractor.article_xpath)

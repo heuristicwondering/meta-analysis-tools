@@ -3,7 +3,7 @@ import csv, os, time
 
 # Currently supported search engines
 engine_names = dict(g="GoogleScholar", p="Pubmed", q="ProquestDisseration",
-                    s="PsychInfo", n="NIHrePORTER")
+                    s="PsychInfo", n="NIHrePORTER", c="ClinicalTrialsGov")
 
 print("Hello! This is a very crude version of a webscraper built to help \n"
       "gather search results from database queries. Unfortunately, some \n"
@@ -16,9 +16,9 @@ print("Hello! This is a very crude version of a webscraper built to help \n"
 print("To get started, please tell me what search engine you\'re scraping info from today.")
 while True:
     search_engine = input("[g] Google Scholar, [p] Pubmed, [q] Proquest Dissertations, \n"
-                          "[s] PsychInfo [n] NIH rePORTER: ").lower()
+                          "[s] PsychInfo, [n] NIH rePORTER, [c] ClinicalTrial.gov: ").lower()
 
-    if search_engine in ["g", "p", "q", "s", "n"]:
+    if search_engine in ["g", "p", "q", "s", "n", "c"]:
         break
     else:
         print("\nRight now I\'m only built to scrape these engines.\n"
@@ -37,7 +37,10 @@ print("\nOk, the next step is to run what ever search you want results for.\n"
 # Extra Instructions
 if search_engine == "n":
     print("\nFor NIHrePORTER you also need to make sure that you are on the \"" + title_extractor.extractor.table_name + "\" tab.\n")
-
+if search_engine == "c":
+    print("\nFor ClinicalTrials.gov I can only scrape the default settings right now.\n"
+          "Please make sure that you don\'t hide these columns and that you stay in the list view tab.\n"
+          "If you find you need to scrape more information than this, please make a feature request.\n")
 
 input("Press enter when the first page is loaded and I\'ll try scraping the results.")
 
@@ -49,10 +52,12 @@ keywords = input('\nGreat! Well, I think I\'ve gotten all I can here.\n'
                  'Generally telling me the keywords you used is the most helpful: ')
 
 
+
 # Saving results to file
 results_fldr = './searchResults-' + time.strftime("%Y%m%d")
 if not os.path.exists(results_fldr):
     os.makedirs(results_fldr)
+
 
 # Naming the file
 if search_engine == "n":
