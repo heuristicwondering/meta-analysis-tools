@@ -4,7 +4,8 @@ import csv, os, time
 
 # Currently supported search engines
 engine_names = dict(g="GoogleScholar", p="Pubmed", q="ProquestDisseration",
-                    s="PsychInfo", n="NIHrePORTER", c="ClinicalTrialsGov")
+                    s="PsychInfo", n="NIHrePORTER", c="ClinicalTrialsGov",
+					r="CochraneReviews")
 
 print("Hello! This is a very crude version of a webscraper built to help \n"
       "gather search results from database queries. Unfortunately, some \n"
@@ -17,9 +18,10 @@ print("Hello! This is a very crude version of a webscraper built to help \n"
 print("To get started, please tell me what search engine you\'re scraping info from today.")
 while True:
     search_engine = input("[g] Google Scholar, [p] Pubmed, [q] Proquest Dissertations, \n"
-                          "[s] PsychInfo, [n] NIH rePORTER, [c] ClinicalTrial.gov: ").lower()
+                          "[s] PsychInfo, [n] NIH rePORTER, [c] ClinicalTrial.gov, \n"
+						  "[r] Cochrane Reviews: ").lower()
 
-    if search_engine in ["g", "p", "q", "s", "n", "c"]:
+    if search_engine in ["g", "p", "q", "s", "n", "c", "r"]:
         break
     else:
         print("\nRight now I\'m only built to scrape these engines.\n"

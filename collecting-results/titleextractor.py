@@ -3,6 +3,62 @@ from savefullpage import save_fullpage_screenshot
 import os, time
 
 
+class CochraneReviewsExtractor:
+	def __init__(self):
+		# Cochrane can search several types of info, this specifies which
+        self.table_name = self._set_table_name()
+
+        # Needed for screenshots
+        image_fldr = './Cochrane-' + self.table_name + '-screenshots-taken-on-' + time.strftime("%Y%m%d-%H%M%S")
+        if not os.path.exists(image_fldr):
+            os.makedirs(image_fldr)
+        self.screenshot_folder = image_fldr
+
+        # All elements that contain article information
+        self.article_xpath = '//div[@class=\'search-results-section-body\']'
+
+        # To find information about article
+        if self.table_name == "Reviews":
+            self.article_title_xpath = './td[4]'
+            self.article_author_xpath = './td[5]'
+            self.article_url_xpath = './td[4]/a'
+            self.article_projectID_xpath = './td[2]/table[@class=\'proj_search_pnum\']/tbody/tr/td[3]/a'
+        elif self.table_name == "Trials":
+            self.article_title_xpath = './td[2]'
+            self.article_author_xpath = './td[4]'
+            self.article_url_xpath = './td[3]/a[1]'
+            self.article_projectID_xpath = './td[1]'
+        
+
+        # The next button on the page
+        self.nxtbtn_xpath = '//div[@class=\'page_counter\']/div[@class=\'pager\']/a[@class=\'single_arrow\']'
+
+        # The current page of results
+        if self.table_name == "Projects":
+            self.pagination = '//div[@class=\'page_counter\']/div[@class=\'pager\']/input[@id=\'sr_pagetogo\']'
+        else:
+            self.pagination = '//div[@class=\'page_counter\']/div[@class=\'pager\']'
+
+        # Everything the instance has gathered
+        self.output = dict(titles=[], authors=[], urls=[], projectID=[])
+		
+		
+	def _set_table_name(self):
+        table_names = dict(r='Reviews', t='Trials')
+
+        print('\nCochrane Reviews can search several types of information.\n'
+              'Right now I can only scrape one of these types at a time.\n')
+
+        while True:
+            table_type = input('Which data do you want to scrape?\n'
+                               '[r] Reviews, [t] Trials: ').lower()
+            if table_type in ["r", "t"]:
+                break
+            else:
+                print('\nThese are the only things I\'m built to grab. Please pick one.\n')
+
+        return table_names[table_type]
+
 class ClinicalTrialsExtractor:
     def __init__(self):
         # Needed for screenshots
@@ -463,7 +519,7 @@ class GoogleExtractor:
 # Generic extractor class.
 class TitleExtractor:
     def __init__(self, search_engine):
-        self.browser = Firefox()
+		self.browser = Firefox()
         self.currentpage = 1
 
         # defining things that are specific to the search engine
@@ -485,6 +541,9 @@ class TitleExtractor:
         elif search_engine == "c":
             self.browser.get("https://clinicaltrials.gov/ct2/search/advanced?cond=&term=&cntry=&state=&city=&dist=")
             self.extractor = ClinicalTrialsExtractor()
+		elif search_engine == "r":
+			self.browser.get("https://www.cochranelibrary.com/advanced-search?q=&t=1")
+			self.extractor = CochraneReviewsExtractor()
 
     def _extract_data_from_page(self):
         articles = self.browser.find_elements_by_xpath(self.extractor.article_xpath)
