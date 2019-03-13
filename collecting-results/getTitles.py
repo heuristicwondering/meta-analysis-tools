@@ -1,3 +1,4 @@
+# This program is written by Megan Finnegan.
 from titleextractor import TitleExtractor
 import csv, os, time
 
