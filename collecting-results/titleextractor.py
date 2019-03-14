@@ -4,8 +4,8 @@ import os, time
 
 
 class CochraneReviewsExtractor:
-	def __init__(self):
-		# Cochrane can search several types of info, this specifies which
+    def __init__(self):
+        # Cochrane can search several types of info, this specifies which
         self.table_name = self._set_table_name()
 
         # Needed for screenshots
@@ -15,35 +15,32 @@ class CochraneReviewsExtractor:
         self.screenshot_folder = image_fldr
 
         # All elements that contain article information
-        self.article_xpath = '//div[@class=\'search-results-section-body\']'
+        self.article_xpath = '//div[@class=\'search-results-section-body\']/div[@class=\'search-results-item\']'
 
         # To find information about article
         if self.table_name == "Reviews":
-            self.article_title_xpath = './td[4]'
-            self.article_author_xpath = './td[5]'
-            self.article_url_xpath = './td[4]/a'
-            self.article_projectID_xpath = './td[2]/table[@class=\'proj_search_pnum\']/tbody/tr/td[3]/a'
+            self.article_title_xpath = '//div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
+            self.article_author_xpath = '//div[@class=\'search-result-authors\']/div'
+            self.article_url_xpath = '//div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
+
         elif self.table_name == "Trials":
             self.article_title_xpath = './td[2]'
             self.article_author_xpath = './td[4]'
             self.article_url_xpath = './td[3]/a[1]'
             self.article_projectID_xpath = './td[1]'
-        
 
         # The next button on the page
-        self.nxtbtn_xpath = '//div[@class=\'page_counter\']/div[@class=\'pager\']/a[@class=\'single_arrow\']'
-
-        # The current page of results
-        if self.table_name == "Projects":
-            self.pagination = '//div[@class=\'page_counter\']/div[@class=\'pager\']/input[@id=\'sr_pagetogo\']'
-        else:
-            self.pagination = '//div[@class=\'page_counter\']/div[@class=\'pager\']'
+        self.nxtbtn_xpath = '//div[@class=\'pagination-next-link\']/a'
+        self.current_page_xpath = '//div[@class=\'pagination-page-links\']/ul[@class=\'pagination-page-list\']/li[@class=\'pagination-page-list-item active\']/a'
 
         # Everything the instance has gathered
-        self.output = dict(titles=[], authors=[], urls=[], projectID=[])
-		
-		
-	def _set_table_name(self):
+        self.output = dict(titles=[], authors=[], urls=[])
+    def _append_results_to_output(self, thispage_articles):
+        self.output['titles'] += thispage_articles['titles']
+        self.output['authors'] += thispage_articles['authors']
+        self.output['urls'] += thispage_articles['urls']
+
+    def _set_table_name(self):
         table_names = dict(r='Reviews', t='Trials')
 
         print('\nCochrane Reviews can search several types of information.\n'
@@ -58,6 +55,33 @@ class CochraneReviewsExtractor:
                 print('\nThese are the only things I\'m built to grab. Please pick one.\n')
 
         return table_names[table_type]
+    def button_click(self, browser):
+        old_page = browser.find_element_by_xpath(self.current_page_xpath).get_attribute('value')
+
+        next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)
+        next_btn.click()
+        time.sleep(2)
+
+        current_page = browser.find_element_by_xpath(self.current_page_xpath).get_attribute('value')
+
+        # If my pagination id hasn't changed, then the button didn't do anything
+        if old_page == current_page:
+            raise Exception('Attempted button click did not advance page!')
+
+    def get_article_data(self, articles):
+        results = dict(titles=[], authors=[], details=[], urls=[])
+
+        for entry in articles:
+            title_div = entry.find_element_by_xpath(self.article_title_xpath)
+            results['titles'].append(title_div.text)
+
+            author_div = entry.find_element_by_xpath(self.article_author_xpath)
+            results['authors'].append(author_div.text)
+
+            url_div = entry.find_element_by_xpath(self.article_url_xpath)
+            results['urls'].append(url_div.get_attribute('href'))
+
+        self._append_results_to_output(results)
 
 class ClinicalTrialsExtractor:
     def __init__(self):
@@ -424,7 +448,7 @@ class PubMedExtractor:
 
         next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)
         next_btn.click()
-        time.sleep(2)
+        time.sleep(4)
 
         current_page = browser.find_element_by_xpath(self.current_page_xpath).get_attribute('value')
 
@@ -519,7 +543,7 @@ class GoogleExtractor:
 # Generic extractor class.
 class TitleExtractor:
     def __init__(self, search_engine):
-		self.browser = Firefox()
+        self.browser = Firefox()
         self.currentpage = 1
 
         # defining things that are specific to the search engine
@@ -541,12 +565,14 @@ class TitleExtractor:
         elif search_engine == "c":
             self.browser.get("https://clinicaltrials.gov/ct2/search/advanced?cond=&term=&cntry=&state=&city=&dist=")
             self.extractor = ClinicalTrialsExtractor()
-		elif search_engine == "r":
-			self.browser.get("https://www.cochranelibrary.com/advanced-search?q=&t=1")
-			self.extractor = CochraneReviewsExtractor()
+        elif search_engine == "r":
+            self.browser.get("https://www.cochranelibrary.com/advanced-search?q=&t=1")
+            self.extractor = CochraneReviewsExtractor()
 
     def _extract_data_from_page(self):
         articles = self.browser.find_elements_by_xpath(self.extractor.article_xpath)
+        print(articles) # for debugging
+
 
         self.extractor.get_article_data(articles)
 
