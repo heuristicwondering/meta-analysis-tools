@@ -1,7 +1,93 @@
 from selenium.webdriver import Firefox
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from savefullpage import save_fullpage_screenshot
 import os, time
 
+
+class CochraneReviewsExtractor:
+    def __init__(self):
+        # Cochrane can search several types of info, this specifies which
+        self.table_name = self._set_table_name()
+
+        #
+
+        # Needed for screenshots
+        image_fldr = './Cochrane-' + self.table_name + '-screenshots-taken-on-' + time.strftime("%Y%m%d-%H%M%S")
+        if not os.path.exists(image_fldr):
+            os.makedirs(image_fldr)
+        self.screenshot_folder = image_fldr
+
+        # All elements that contain article information
+        self.article_xpath = '//div[@class=\'search-results-section-body\']/div[@class=\'search-results-item\']'
+
+        # To find information about article
+        if self.table_name == "Reviews":
+            self.article_title_xpath = './div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
+            self.article_author_xpath = './div[@class=\'search-results-item-body\']/div[@class=\'search-result-authors\']/div'
+            self.article_url_xpath = './div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
+
+        elif self.table_name == "Trials":
+            self.article_title_xpath = './div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
+            self.article_author_xpath = './div[@class=\'search-results-item-body\']/div[@class=\'search-result-authors\']/div'
+            self.article_url_xpath = './div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
+
+        # The next button on the page
+        self.nxtbtn_xpath = '//div[@class=\'pagination-next-link\']/a'
+        self.current_page_xpath = '//div[@class=\'pagination-page-links\']/ul[@class=\'pagination-page-list\']/li[@class=\'pagination-page-list-item active\']/a'
+
+        # Everything the instance has gathered
+        self.output = dict(titles=[], authors=[], urls=[])
+    def _append_results_to_output(self, thispage_articles):
+        self.output['titles'] += thispage_articles['titles']
+        self.output['authors'] += thispage_articles['authors']
+        self.output['urls'] += thispage_articles['urls']
+
+    def _set_table_name(self):
+        table_names = dict(r='Reviews', t='Trials')
+
+        print('\nCochrane Reviews can search several types of information.\n'
+              'Right now I can only scrape one of these types at a time.\n')
+
+        while True:
+            table_type = input('Which data do you want to scrape?\n'
+                               '[r] Reviews, [t] Trials: ').lower()
+            if table_type in ["r", "t"]:
+                break
+            else:
+                print('\nThese are the only things I\'m built to grab. Please pick one.\n')
+
+        return table_names[table_type]
+
+    def button_click(self, browser):
+        old_page = int(browser.find_element_by_xpath(self.current_page_xpath).text)
+        next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)
+        next_btn.click()
+        time.sleep(10)
+        # scroll to top of page after load
+        ActionChains(browser).key_down(Keys.CONTROL).send_keys(Keys.HOME).perform()
+        time.sleep(1)
+        current_page = int(browser.find_element_by_xpath(self.current_page_xpath).text)
+
+        # If my pagination id hasn't changed, then the button didn't do anything
+        if old_page == current_page:
+            raise Exception('Attempted button click did not advance page!')
+
+    def get_article_data(self, articles):
+        results = dict(titles=[], authors=[], urls=[])
+
+
+        for entry in articles:
+            title_div = entry.find_element_by_xpath(self.article_title_xpath)
+            results['titles'].append(title_div.text)
+
+            author_div = entry.find_element_by_xpath(self.article_author_xpath)
+            results['authors'].append(author_div.text)
+
+            url_div = entry.find_element_by_xpath(self.article_url_xpath)
+            results['urls'].append(url_div.get_attribute('href'))
+
+        self._append_results_to_output(results)
 
 class ClinicalTrialsExtractor:
     def __init__(self):
@@ -368,7 +454,7 @@ class PubMedExtractor:
 
         next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)
         next_btn.click()
-        time.sleep(2)
+        time.sleep(4)
 
         current_page = browser.find_element_by_xpath(self.current_page_xpath).get_attribute('value')
 
@@ -485,6 +571,9 @@ class TitleExtractor:
         elif search_engine == "c":
             self.browser.get("https://clinicaltrials.gov/ct2/search/advanced?cond=&term=&cntry=&state=&city=&dist=")
             self.extractor = ClinicalTrialsExtractor()
+        elif search_engine == "r":
+            self.browser.get("https://www.cochranelibrary.com/advanced-search?q=&t=1")
+            self.extractor = CochraneReviewsExtractor()
 
     def _extract_data_from_page(self):
         articles = self.browser.find_elements_by_xpath(self.extractor.article_xpath)
