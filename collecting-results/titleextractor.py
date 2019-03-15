@@ -1,4 +1,6 @@
 from selenium.webdriver import Firefox
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from savefullpage import save_fullpage_screenshot
 import os, time
 
@@ -7,6 +9,8 @@ class CochraneReviewsExtractor:
     def __init__(self):
         # Cochrane can search several types of info, this specifies which
         self.table_name = self._set_table_name()
+
+        #
 
         # Needed for screenshots
         image_fldr = './Cochrane-' + self.table_name + '-screenshots-taken-on-' + time.strftime("%Y%m%d-%H%M%S")
@@ -19,15 +23,14 @@ class CochraneReviewsExtractor:
 
         # To find information about article
         if self.table_name == "Reviews":
-            self.article_title_xpath = '//div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
-            self.article_author_xpath = '//div[@class=\'search-result-authors\']/div'
-            self.article_url_xpath = '//div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
+            self.article_title_xpath = './div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
+            self.article_author_xpath = './div[@class=\'search-results-item-body\']/div[@class=\'search-result-authors\']/div'
+            self.article_url_xpath = './div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
 
         elif self.table_name == "Trials":
-            self.article_title_xpath = './td[2]'
-            self.article_author_xpath = './td[4]'
-            self.article_url_xpath = './td[3]/a[1]'
-            self.article_projectID_xpath = './td[1]'
+            self.article_title_xpath = './div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
+            self.article_author_xpath = './div[@class=\'search-results-item-body\']/div[@class=\'search-result-authors\']/div'
+            self.article_url_xpath = './div[@class=\'search-results-item-body\']/h3[@class=\'result-title\']/a'
 
         # The next button on the page
         self.nxtbtn_xpath = '//div[@class=\'pagination-next-link\']/a'
@@ -55,21 +58,24 @@ class CochraneReviewsExtractor:
                 print('\nThese are the only things I\'m built to grab. Please pick one.\n')
 
         return table_names[table_type]
-    def button_click(self, browser):
-        old_page = browser.find_element_by_xpath(self.current_page_xpath).get_attribute('value')
 
+    def button_click(self, browser):
+        old_page = int(browser.find_element_by_xpath(self.current_page_xpath).text)
         next_btn = browser.find_element_by_xpath(self.nxtbtn_xpath)
         next_btn.click()
-        time.sleep(2)
-
-        current_page = browser.find_element_by_xpath(self.current_page_xpath).get_attribute('value')
+        time.sleep(10)
+        # scroll to top of page after load
+        ActionChains(browser).key_down(Keys.CONTROL).send_keys(Keys.HOME).perform()
+        time.sleep(1)
+        current_page = int(browser.find_element_by_xpath(self.current_page_xpath).text)
 
         # If my pagination id hasn't changed, then the button didn't do anything
         if old_page == current_page:
             raise Exception('Attempted button click did not advance page!')
 
     def get_article_data(self, articles):
-        results = dict(titles=[], authors=[], details=[], urls=[])
+        results = dict(titles=[], authors=[], urls=[])
+
 
         for entry in articles:
             title_div = entry.find_element_by_xpath(self.article_title_xpath)
@@ -571,8 +577,6 @@ class TitleExtractor:
 
     def _extract_data_from_page(self):
         articles = self.browser.find_elements_by_xpath(self.extractor.article_xpath)
-        print(articles) # for debugging
-
 
         self.extractor.get_article_data(articles)
 

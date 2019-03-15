@@ -39,11 +39,14 @@ print("\nOk, the next step is to run what ever search you want results for.\n"
 
 # Extra Instructions
 if search_engine == "n":
-    print("\nFor NIHrePORTER you also need to make sure that you are on the \"" + title_extractor.extractor.table_name + "\" tab.\n")
+    print("\nFor NIH RePORTER you also need to make sure that you are on the \"" + title_extractor.extractor.table_name + "\" tab.\n")
 if search_engine == "c":
     print("\nFor ClinicalTrials.gov I can only scrape the default settings right now.\n"
           "Please make sure that you don\'t hide these columns and that you stay in the list view tab.\n"
           "If you find you need to scrape more information than this, please make a feature request.\n")
+if search_engine == "r":
+    print("\nFor Coachrane Library you also need to make sure that you are on the \"" + title_extractor.extractor.table_name + "\" tab.\n")
+
 
 input("Press enter when the first page is loaded and I\'ll try scraping the results.")
 
