@@ -28,7 +28,7 @@ for csv_file in all_csv_files:
     this_data = pandas.read_csv(csv_file)
     this_data['engineName'] = engine
 
-    allData = pandas.concat([allData, this_data], axis=0, ignore_index=True)
+    allData = pandas.concat([allData, this_data], axis=0, ignore_index=True, sort=False)
 
 
 # remove duplicates and alphabetize
