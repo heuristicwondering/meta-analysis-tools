@@ -1,5 +1,5 @@
 # This program is written by Megan Finnegan.
-from titleextractor import TitleExtractor
+from extractor import titleextractor as te
 import csv, os, time
 
 # Currently supported search engines
@@ -32,7 +32,7 @@ print("\nThanks. I\'m going to open up a window to take us to that search engine
       "Check back here for the next instruction.")
 time.sleep(3)
 
-title_extractor = TitleExtractor(search_engine)
+title_extractor = te.TitleExtractor(search_engine)
 
 print("\nOk, the next step is to run what ever search you want results for.\n"
       "When the first page is loaded, come back here to let me know.\n")
