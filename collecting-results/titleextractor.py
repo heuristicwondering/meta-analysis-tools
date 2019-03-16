@@ -10,8 +10,6 @@ class CochraneReviewsExtractor:
         # Cochrane can search several types of info, this specifies which
         self.table_name = self._set_table_name()
 
-        #
-
         # Needed for screenshots
         image_fldr = './Cochrane-' + self.table_name + '-screenshots-taken-on-' + time.strftime("%Y%m%d-%H%M%S")
         if not os.path.exists(image_fldr):

@@ -1,6 +1,4 @@
-# Checking the amount of overlap between a subset and superset of scraped results.
-# This is used to verify if I really need to run more refined searches or just the
-# broader searches
+# Checks the amount of overlap between a subset and superset of scraped results.
 import csv
 
 def list2dict(dlist):

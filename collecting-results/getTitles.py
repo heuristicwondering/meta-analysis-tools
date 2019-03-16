@@ -66,7 +66,7 @@ if not os.path.exists(results_fldr):
 
 
 # Naming the file
-if search_engine == "n":
+if search_engine in ["n", "r"]:
     csv_file = results_fldr + '/' + engine_names[search_engine] + '-' + title_extractor.extractor.table_name \
                + '-all-titles-' + "-".join(keywords.split(' ')) + '.csv'
 else:
