@@ -79,8 +79,8 @@ try:
         writer.writerow(search_results.keys())
         writer.writerows(zip(*search_results.values()))
 
-    print('\n\nEverything should be saved now. Check the folder you\'re running\n'
-          'this script in for your results and screenshots of the pages we scraped.\n'
+    print('\n\nEverything should be saved now. Check the folder you\'re running this\n'
+          'script from for your results and the screenshots of the pages we scraped.\n'
           '\nThanks for using!\n')
 except IOError:
     print("I/O error")

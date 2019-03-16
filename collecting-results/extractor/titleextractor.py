@@ -1,7 +1,5 @@
 from selenium.webdriver import Firefox
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
-from savefullpage import save_fullpage_screenshot
+from extractor.savefullpage import save_fullpage_screenshot
 import os, time
 
 
@@ -86,6 +84,7 @@ class CochraneReviewsExtractor:
             results['urls'].append(url_div.get_attribute('href'))
 
         self._append_results_to_output(results)
+
 
 class ClinicalTrialsExtractor:
     def __init__(self):
@@ -582,7 +581,7 @@ class TitleExtractor:
         self.extractor.button_click(self.browser)
 
     def _take_screen_shot(self):
-        image_fldr = './' + self.extractor.screenshot_folder + '/image-of-page-' + str(self.currentpage)
+        image_fldr = self.extractor.screenshot_folder + '/image-of-page-' + str(self.currentpage)
         if not os.path.exists(image_fldr):
             os.makedirs(image_fldr)
         else:
