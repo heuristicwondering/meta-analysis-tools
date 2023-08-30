@@ -1,0 +1,7 @@
+# IDE generated files #
+#######################
+.idea
+
+# data files #
+##############
+data/seed-papers/*
